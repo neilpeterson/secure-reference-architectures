@@ -3,7 +3,7 @@ param RandomName string = take(uniqueString(name),7)
 param location string = resourceGroup().location
 
 resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' = {
-  name: RandomName
+  name: 'kv${RandomName}'
   location: location
   properties: {
     enabledForDeployment: true
@@ -51,6 +51,12 @@ resource keyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
   }
 }
 
+resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2019-11-01' = {
+  name: name
+  location: location
+  properties: {}
+}
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   name: name
   location: location
@@ -65,6 +71,9 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
         name: 'function-app'
         properties: {
           addressPrefix: '10.0.0.0/24'
+          networkSecurityGroup: {
+            id: networkSecurityGroup.id
+          }
           delegations: [
             {
               name: 'Microsoft.Web/serverFarms'
@@ -90,6 +99,10 @@ resource storageaccount 'Microsoft.Storage/storageAccounts@2021-02-01' = {
   kind: 'StorageV2'
   sku: {
     name: 'Premium_LRS'
+  }
+  properties: {
+    allowBlobPublicAccess: false
+    minimumTlsVersion: 'TLS1_2'
   }
 }
 
@@ -139,13 +152,14 @@ resource FunctionApp 'Microsoft.Web/sites@2022-03-01' = {
         }
         {
           name: 'KV_REFERENCE'
-          value: '@Microsoft.KeyVault(VaultName=${RandomName};SecretName=${name})'
+          value: '@Microsoft.KeyVault(VaultName=kv${RandomName};SecretName=${name})'
         }
       ]
     }
     serverFarmId: hostingPlan.id
     clientAffinityEnabled: false
     virtualNetworkSubnetId: '${virtualNetwork.id}/subnets/${virtualNetwork.properties.subnets[0].name}'
+    httpsOnly: true
   }
   identity: {
     type: 'SystemAssigned'

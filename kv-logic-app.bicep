@@ -1,9 +1,9 @@
+param name string
+param RandomName string = take(uniqueString(name),7)
 param location string = resourceGroup().location
-param name string = 'test-niner-0017'
-param StorageAccountName string = 'testniner0017'
 
 resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' = {
-  name: name
+  name: 'kv${RandomName}'
   location: location
   properties: {
     enabledForDeployment: true
@@ -51,6 +51,12 @@ resource keyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
   }
 }
 
+resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2019-11-01' = {
+  name: name
+  location: location
+  properties: {}
+}
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   name: name
   location: location
@@ -60,11 +66,15 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
         '10.0.0.0/16'
       ]
     }
+    
     subnets: [
       {
         name: 'function-app'
         properties: {
           addressPrefix: '10.0.0.0/24'
+          networkSecurityGroup: {
+            id: networkSecurityGroup.id
+          }
           delegations: [
             {
               name: 'Microsoft.Web/serverFarms'
@@ -85,12 +95,17 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
 }
 
 resource storageaccount 'Microsoft.Storage/storageAccounts@2021-02-01' = {
-  name: StorageAccountName
+  name: RandomName
   location: location
   kind: 'StorageV2'
+    properties: {
+    allowBlobPublicAccess: false
+    minimumTlsVersion: 'TLS1_2'
+  }
   sku: {
     name: 'Premium_LRS'
   }
+
 }
 
 resource hostingPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
@@ -124,6 +139,7 @@ resource LogicApp 'Microsoft.Web/sites@2022-03-01' = {
   location: location
   properties: {
     enabled: true
+    httpsOnly: true
     hostNameSslStates: [
       {
         name: '${name}.azurewebsites.net'
@@ -155,7 +171,7 @@ resource LogicApp 'Microsoft.Web/sites@2022-03-01' = {
         }
         {
           name: 'KV_REFERENCE'
-          value: '@Microsoft.KeyVault(VaultName=${name};SecretName=${name})'
+          value: '@Microsoft.KeyVault(VaultName=kv${name};SecretName=${name})'
         }
       ]
     }

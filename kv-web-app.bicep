@@ -1,8 +1,9 @@
 param name string
+param RandomName string = take(uniqueString(name),7)
 param location string = resourceGroup().location
 
 resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' = {
-  name: name
+  name: 'kv${RandomName}'
   location: location
   properties: {
     enabledForDeployment: true
@@ -50,6 +51,12 @@ resource keyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
   }
 }
 
+resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2019-11-01' = {
+  name: name
+  location: location
+  properties: {}
+}
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   name: name
   location: location
@@ -64,6 +71,9 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
         name: 'function-app'
         properties: {
           addressPrefix: '10.0.0.0/24'
+          networkSecurityGroup: {
+            id: networkSecurityGroup.id
+          }
           delegations: [
             {
               name: 'Microsoft.Web/serverFarms'
@@ -84,11 +94,15 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
 }
 
 resource storageaccount 'Microsoft.Storage/storageAccounts@2021-02-01' = {
-  name: take(uniqueString(name),7)
+  name: RandomName
   location: location
   kind: 'StorageV2'
   sku: {
     name: 'Premium_LRS'
+  }
+  properties: {
+    allowBlobPublicAccess: false
+    minimumTlsVersion: 'TLS1_2'
   }
 }
 
@@ -124,6 +138,7 @@ resource webApplication 'Microsoft.Web/sites@2021-01-15' = {
   properties: {
     serverFarmId: hostingPlan.id
     virtualNetworkSubnetId: '${virtualNetwork.id}/subnets/${virtualNetwork.properties.subnets[0].name}'
+    httpsOnly: true
     hostNameSslStates: [
       {
         name: '${name}.azurewebsites.net'
@@ -147,12 +162,11 @@ resource webApplication 'Microsoft.Web/sites@2021-01-15' = {
       appSettings: [
         {
           name: 'KV_REFERENCE'
-          value: '@Microsoft.KeyVault(VaultName=${name};SecretName=${name})'
+          value: '@Microsoft.KeyVault(VaultName=kv${name};SecretName=${name})'
         }
       ]
     }
   }
-
   identity: {
     type: 'SystemAssigned'
   }
