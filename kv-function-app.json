@@ -9,14 +9,14 @@
     }
   },
   "parameters": {
-    "name": {
+    "Name": {
       "type": "string"
     },
     "RandomName": {
       "type": "string",
-      "defaultValue": "[take(uniqueString(parameters('name')), 7)]"
+      "defaultValue": "[take(uniqueString(parameters('Name')), 7)]"
     },
-    "location": {
+    "Location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]"
     }
@@ -26,7 +26,7 @@
       "type": "Microsoft.KeyVault/vaults",
       "apiVersion": "2019-09-01",
       "name": "[format('kv{0}', parameters('RandomName'))]",
-      "location": "[parameters('location')]",
+      "location": "[parameters('Location')]",
       "properties": {
         "enabledForDeployment": true,
         "enabledForTemplateDeployment": true,
@@ -35,7 +35,7 @@
         "accessPolicies": [
           {
             "tenantId": "[subscription().tenantId]",
-            "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('name')), '2022-03-01', 'full').identity.principalId]",
+            "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('Name')), '2022-03-01', 'full').identity.principalId]",
             "permissions": {
               "keys": [
                 "get"
@@ -57,21 +57,21 @@
           "ipRules": [],
           "virtualNetworkRules": [
             {
-              "id": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('name')), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2019-11-01').subnets[0].name)]",
+              "id": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('Name')), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('Name')), '2019-11-01').subnets[0].name)]",
               "ignoreMissingVnetServiceEndpoint": false
             }
           ]
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', parameters('name'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('name'))]"
+        "[resourceId('Microsoft.Web/sites', parameters('Name'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('Name'))]"
       ]
     },
     {
       "type": "Microsoft.KeyVault/vaults/secrets",
       "apiVersion": "2019-09-01",
-      "name": "[format('{0}/{1}', format('kv{0}', parameters('RandomName')), parameters('name'))]",
+      "name": "[format('{0}/{1}', format('kv{0}', parameters('RandomName')), parameters('Name'))]",
       "properties": {
         "value": "hello-world"
       },
@@ -82,15 +82,15 @@
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2019-11-01",
-      "name": "[parameters('name')]",
-      "location": "[parameters('location')]",
+      "name": "[parameters('Name')]",
+      "location": "[parameters('Location')]",
       "properties": {}
     },
     {
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2019-11-01",
-      "name": "[parameters('name')]",
-      "location": "[parameters('location')]",
+      "name": "[parameters('Name')]",
+      "location": "[parameters('Location')]",
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
@@ -103,7 +103,7 @@
             "properties": {
               "addressPrefix": "10.0.0.0/24",
               "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('name'))]"
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('Name'))]"
               },
               "delegations": [
                 {
@@ -123,14 +123,14 @@
         ]
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('name'))]"
+        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('Name'))]"
       ]
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2021-02-01",
       "name": "[parameters('RandomName')]",
-      "location": "[parameters('location')]",
+      "location": "[parameters('Location')]",
       "kind": "StorageV2",
       "sku": {
         "name": "Premium_LRS"
@@ -143,8 +143,8 @@
     {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2022-09-01",
-      "name": "[parameters('name')]",
-      "location": "[parameters('location')]",
+      "name": "[parameters('Name')]",
+      "location": "[parameters('Location')]",
       "sku": {
         "name": "EP1",
         "tier": "ElasticPremium",
@@ -169,9 +169,9 @@
     {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2022-03-01",
-      "name": "[parameters('name')]",
+      "name": "[parameters('Name')]",
       "kind": "functionapp,linux",
-      "location": "[parameters('location')]",
+      "location": "[parameters('Location')]",
       "properties": {
         "siteConfig": {
           "appSettings": [
@@ -189,22 +189,22 @@
             },
             {
               "name": "KV_REFERENCE",
-              "value": "[format('@Microsoft.KeyVault(VaultName=kv{0};SecretName={1})', parameters('RandomName'), parameters('name'))]"
+              "value": "[format('@Microsoft.KeyVault(VaultName=kv{0};SecretName={1})', parameters('RandomName'), parameters('Name'))]"
             }
           ]
         },
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('name'))]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('Name'))]",
         "clientAffinityEnabled": false,
-        "virtualNetworkSubnetId": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('name')), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2019-11-01').subnets[0].name)]",
+        "virtualNetworkSubnetId": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('Name')), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('Name')), '2019-11-01').subnets[0].name)]",
         "httpsOnly": true
       },
       "identity": {
         "type": "SystemAssigned"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', parameters('name'))]",
+        "[resourceId('Microsoft.Web/serverfarms', parameters('Name'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('RandomName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('name'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('Name'))]"
       ]
     }
   ]

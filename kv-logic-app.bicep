@@ -1,10 +1,10 @@
-param name string
-param RandomName string = take(uniqueString(name),7)
-param location string = resourceGroup().location
+param Name string
+param RandomName string = take(uniqueString(Name),7)
+param Location string = resourceGroup().location
 
-resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' = {
+resource KeyVault 'Microsoft.KeyVault/vaults@2019-09-01' = {
   name: 'kv${RandomName}'
-  location: location
+  location: Location
   properties: {
     enabledForDeployment: true
     enabledForTemplateDeployment: true
@@ -35,7 +35,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' = {
       ipRules: []
       virtualNetworkRules: [
         {
-          id: '${virtualNetwork.id}/subnets/${virtualNetwork.properties.subnets[0].name}'
+          id: '${VirtualNetwork.id}/subnets/${VirtualNetwork.properties.subnets[0].name}'
           ignoreMissingVnetServiceEndpoint: false
         }
       ]
@@ -43,23 +43,23 @@ resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' = {
   }
 }
 
-resource keyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
-  name: name
-  parent: keyVault
+resource KeyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+  name: Name
+  parent: KeyVault
   properties: {
     value: 'hello-world'
   }
 }
 
-resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2019-11-01' = {
-  name: name
-  location: location
+resource NetworkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2019-11-01' = {
+  name: Name
+  location: Location
   properties: {}
 }
 
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
-  name: name
-  location: location
+resource VirtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
+  name: Name
+  location: Location
   properties: {
     addressSpace: {
       addressPrefixes: [
@@ -73,7 +73,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
         properties: {
           addressPrefix: '10.0.0.0/24'
           networkSecurityGroup: {
-            id: networkSecurityGroup.id
+            id: NetworkSecurityGroup.id
           }
           delegations: [
             {
@@ -94,9 +94,9 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   }
 }
 
-resource storageaccount 'Microsoft.Storage/storageAccounts@2021-02-01' = {
+resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-02-01' = {
   name: RandomName
-  location: location
+  location: Location
   kind: 'StorageV2'
     properties: {
     allowBlobPublicAccess: false
@@ -108,9 +108,9 @@ resource storageaccount 'Microsoft.Storage/storageAccounts@2021-02-01' = {
 
 }
 
-resource hostingPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: name
-  location: location
+resource HostingPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
+  name: Name
+  location: Location
   sku: {
     name: 'WS1'
     tier: 'WorkflowStandard'
@@ -134,20 +134,20 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
 }
 
 resource LogicApp 'Microsoft.Web/sites@2022-03-01' = {
-  name: name
+  name: Name
   kind: 'functionapp,workflowapp'
-  location: location
+  location: Location
   properties: {
     enabled: true
     httpsOnly: true
     hostNameSslStates: [
       {
-        name: '${name}.azurewebsites.net'
+        name: '${Name}.azurewebsites.net'
         sslState: 'Disabled'
         hostType: 'Standard'
       }
       {
-        name: '${name}.scm.azurewebsites.net'
+        name: '${Name}.scm.azurewebsites.net'
         sslState: 'Disabled'
         hostType: 'Repository'
       }
@@ -167,16 +167,16 @@ resource LogicApp 'Microsoft.Web/sites@2022-03-01' = {
         }
         {
           name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${name};AccountKey=${storageaccount.listKeys().keys[0].value}'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${Name};AccountKey=${StorageAccount.listKeys().keys[0].value}'
         }
         {
           name: 'KV_REFERENCE'
-          value: '@Microsoft.KeyVault(VaultName=kv${name};SecretName=${name})'
+          value: '@Microsoft.KeyVault(VaultName=kv${RandomName};SecretName=${Name})'
         }
       ]
     }
-    serverFarmId: hostingPlan.id
-    virtualNetworkSubnetId: '${virtualNetwork.id}/subnets/${virtualNetwork.properties.subnets[0].name}'
+    serverFarmId: HostingPlan.id
+    virtualNetworkSubnetId: '${VirtualNetwork.id}/subnets/${VirtualNetwork.properties.subnets[0].name}'
   }
   identity: {
     type: 'SystemAssigned'

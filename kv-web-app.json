@@ -5,16 +5,16 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "3367480856715365105"
+      "templateHash": "15752511633763260715"
     }
   },
   "parameters": {
-    "name": {
+    "Name": {
       "type": "string"
     },
     "RandomName": {
       "type": "string",
-      "defaultValue": "[take(uniqueString(parameters('name')), 7)]"
+      "defaultValue": "[take(uniqueString(parameters('Name')), 7)]"
     },
     "location": {
       "type": "string",
@@ -35,7 +35,7 @@
         "accessPolicies": [
           {
             "tenantId": "[subscription().tenantId]",
-            "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('name')), '2021-01-15', 'full').identity.principalId]",
+            "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('Name')), '2021-01-15', 'full').identity.principalId]",
             "permissions": {
               "keys": [
                 "get"
@@ -57,21 +57,21 @@
           "ipRules": [],
           "virtualNetworkRules": [
             {
-              "id": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('name')), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2019-11-01').subnets[0].name)]",
+              "id": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('Name')), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('Name')), '2019-11-01').subnets[0].name)]",
               "ignoreMissingVnetServiceEndpoint": false
             }
           ]
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('name'))]",
-        "[resourceId('Microsoft.Web/sites', parameters('name'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('Name'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('Name'))]"
       ]
     },
     {
       "type": "Microsoft.KeyVault/vaults/secrets",
       "apiVersion": "2019-09-01",
-      "name": "[format('{0}/{1}', format('kv{0}', parameters('RandomName')), parameters('name'))]",
+      "name": "[format('{0}/{1}', format('kv{0}', parameters('RandomName')), parameters('Name'))]",
       "properties": {
         "value": "hello-world"
       },
@@ -82,14 +82,14 @@
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2019-11-01",
-      "name": "[parameters('name')]",
+      "name": "[parameters('Name')]",
       "location": "[parameters('location')]",
       "properties": {}
     },
     {
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2019-11-01",
-      "name": "[parameters('name')]",
+      "name": "[parameters('Name')]",
       "location": "[parameters('location')]",
       "properties": {
         "addressSpace": {
@@ -103,7 +103,7 @@
             "properties": {
               "addressPrefix": "10.0.0.0/24",
               "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('name'))]"
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('Name'))]"
               },
               "delegations": [
                 {
@@ -123,7 +123,7 @@
         ]
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('name'))]"
+        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('Name'))]"
       ]
     },
     {
@@ -143,7 +143,7 @@
     {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2022-09-01",
-      "name": "[parameters('name')]",
+      "name": "[parameters('Name')]",
       "location": "[parameters('location')]",
       "sku": {
         "name": "S1",
@@ -169,21 +169,21 @@
     {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2021-01-15",
-      "name": "[parameters('name')]",
+      "name": "[parameters('Name')]",
       "location": "[parameters('location')]",
       "kind": "app",
       "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('name'))]",
-        "virtualNetworkSubnetId": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('name')), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2019-11-01').subnets[0].name)]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('Name'))]",
+        "virtualNetworkSubnetId": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('Name')), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('Name')), '2019-11-01').subnets[0].name)]",
         "httpsOnly": true,
         "hostNameSslStates": [
           {
-            "name": "[format('{0}.azurewebsites.net', parameters('name'))]",
+            "name": "[format('{0}.azurewebsites.net', parameters('Name'))]",
             "sslState": "Disabled",
             "hostType": "Standard"
           },
           {
-            "name": "[format('{0}.scm.azurewebsites.net', parameters('name'))]",
+            "name": "[format('{0}.scm.azurewebsites.net', parameters('Name'))]",
             "sslState": "Disabled",
             "hostType": "Repository"
           }
@@ -199,7 +199,7 @@
           "appSettings": [
             {
               "name": "KV_REFERENCE",
-              "value": "[format('@Microsoft.KeyVault(VaultName=kv{0};SecretName={1})', parameters('name'), parameters('name'))]"
+              "value": "[format('@Microsoft.KeyVault(VaultName=kv{0};SecretName={1})', parameters('RandomName'), parameters('Name'))]"
             }
           ]
         }
@@ -208,8 +208,8 @@
         "type": "SystemAssigned"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', parameters('name'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('name'))]"
+        "[resourceId('Microsoft.Web/serverfarms', parameters('Name'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('Name'))]"
       ]
     }
   ]
